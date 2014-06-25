@@ -25,8 +25,9 @@ object Import {
     val mainConfig = SettingKey[String]("rjs-main-config", "By default, 'main' is used as the module for configuration.")
     val mainConfigFile = TaskKey[File]("rjs-main-config-file", "The full path to the main configuration file.")
     val mainModule = SettingKey[String]("rjs-main-module", "By default, 'main' is used as the module.")
-    val modules = SettingKey[Seq[JS.Object]]("rjs-modules", "The json array of modules.")
+    val name = SettingKey[String]("rjs-name", "The entry point name.")
     val optimize = SettingKey[String]("rjs-optimize", "The name of the optimizer, defaults to uglify2.")
+    val out = SettingKey[String]("rjs-out", "The output file name.")
     val paths = TaskKey[Map[String, (String, String)]]("rjs-paths", "RequireJS path mappings of module ids to a tuple of the build path and production path. By default all WebJar libraries are made available from a CDN and their mappings can be found here (unless the cdn is set to None).")
     val preserveLicenseComments = SettingKey[Boolean]("rjs-preserve-license-comments", "Whether to preserve comments or not. Defaults to false given source maps (see http://requirejs.org/docs/errors.html#sourcemapcomments).")
     val webJarCdns = SettingKey[Map[String, String]]("rjs-webjar-cdns", """CDNs to be used for locating WebJars. By default "org.webjars" is mapped to "jsdelivr".""")
@@ -62,8 +63,9 @@ object SbtRjs extends AutoPlugin {
     mainConfig := mainModule.value,
     mainConfigFile := new File(baseUrl.value, mainConfig.value + ".js"),
     mainModule := "main",
-    modules := Seq(JS.Object("name" -> mainModule.value)),
+    name := mainModule.value,
     optimize := "uglify2",
+    out := name.value + ".js",
     paths := getWebJarPaths.value,
     preserveLicenseComments := false,
     resourceManaged in rjs := webTarget.value / rjs.key.label,
@@ -76,12 +78,11 @@ object SbtRjs extends AutoPlugin {
 
   private def getAppBuildProfile: Def.Initialize[Task[JS.Object]] = Def.task {
     JS.Object(
-      "appDir" -> appDir.value,
-      "baseUrl" -> baseUrl.value,
-      "dir" -> dir.value,
+      "baseUrl" -> appDir.value / baseUrl.value,
       "generateSourceMaps" -> generateSourceMaps.value,
       "mainConfigFile" -> appDir.value / mainConfigFile.value.getPath,
-      "modules" -> modules.value,
+      "name" -> name.value,
+      "out" -> dir.value / out.value,
       "onBuildWrite" -> buildWriter.value,
       "optimize" -> optimize.value,
       "paths" -> paths.value.map(m => m._1 -> "empty:"),
